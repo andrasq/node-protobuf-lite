@@ -74,6 +74,7 @@ Todo
 ----
 
 - needs tests
+- split out float/double decoding into a separate package
 
 
 Related Work
@@ -82,3 +83,5 @@ Related Work
 - protocol-buffers
 - protobufjs
 - protobuf
+- qbson
+- qunpack
