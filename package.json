@@ -1,0 +1,26 @@
+{
+  "name": "protobuf-lite",
+  "version": "0.0.1",
+  "description": "protocol buffers, much simplified",
+  "keywords": [ "pack", "unpack", "protocol", "buffer", "protobuf", "protocol buffers" ],
+  "main": "protobuf.js",
+  "author": "Andras",
+  "repository": "https://github.com/andrasq/node-protobuf-lite",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "qnit": "0.19.0"
+  },
+  "dependencies": {
+    "q-utf8": "0.1.1"
+  },
+  "devDependencies": {
+    "qnit": "0.19.0",
+    "qtimeit": "0.21.0"
+  },
+  "scripts": {
+    "test": "qnit test-*",
+    "benchmark": "node benchmark.js",
+    "coverage": "nyc --reporter lcov --reporter text npm test",
+    "clean": "rm -rf .nyc_output coverage npm-debug.log"
+  }
+}
