@@ -332,7 +332,7 @@ function pow2( exp ) {
 }
 
 
-// /** quicktest:
+/** quicktest:
 
 var assert = require('assert');
 var qtimeit = require('./timeit');
@@ -407,6 +407,9 @@ var doubleBuf = new Buffer(8); doubleBuf.writeDoubleLE(1234.5e-200);
 var doubleBuf = new Buffer(8); doubleBuf.writeDoubleLE(1234.5);
 assert.equal(decodeFloat64(doubleBuf, {p:0}), doubleBuf.readDoubleLE());
 
+/**/ // end quicktest
+
+if (0) {
 var x;
 qtimeit.bench.timeGoal = .20;
 qtimeit.bench.visualize = true;
@@ -455,5 +458,5 @@ qtimeit.bench({
 });
 
 console.log(x, unpack(format, x));
-
+}
 /**/

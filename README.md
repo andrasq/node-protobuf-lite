@@ -9,9 +9,10 @@ no .proto file parsing.
 On the other hand, it is possible to decode protobuf numbers and strings with a single
 call, eg
 
-    var databuf = pbuflite.pack('VVaf', [123, 4.5, 'Hello, world.', 1234.5 ]);
-    var items = pbuflite.unpack('VVaf', databuf);
-    // assert.deepStrictEqual(items, [123, 4, 'Hello, world.', 1234.5]);
+    // pack as varint, uint32, string, float
+    var buf = pbuflite.pack('iVaf', [123, 4.5, 'hello', 1234.5 ]);
+    var items = pbuflite.unpack('iVaf', buf);
+    // => [ 123, 4, 'hello', 1234.5 ]
 
 *NOTE* This is a work in progress.  The code seems to work, but testing has been very
 light.  Not much error checking yet internally.
@@ -80,8 +81,10 @@ Todo
 Related Work
 ------------
 
-- protocol-buffers
-- protobufjs
-- protobuf
-- qbson
-- qunpack
+- [`google-protobuf`](https://npmjs.com/package/google-protobuf)
+- [`protocol-buffers`](https://npmjs.com/package/protocol-buffers)
+- [`protocol-buffers-schema`](https://npmjs.com/package/protocol-buffers-schema)
+- [`protobufjs`](https://npmjs.com/package/protobufjs)
+- [`protobuf`](https://npmjs.com/package/protobuf)
+- [`qbson`](https://github.com/andrasq/node-qbson)
+- [`qunpack`](https://npmjs.com/package/qunpack)

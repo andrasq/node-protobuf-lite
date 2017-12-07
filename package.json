@@ -5,7 +5,7 @@
   "keywords": [ "pack", "unpack", "protocol", "buffer", "protobuf", "protocol buffers" ],
   "main": "protobuf.js",
   "author": "Andras",
-  "repository": "https://github.com/andrasq/node-protobuf-lite",
+  "repository": "https://github.com/andrasq/node-protobuf-lite#readme",
   "license": "Apache-2.0",
   "devDependencies": {
     "qnit": "0.19.0"
