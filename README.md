@@ -24,7 +24,9 @@ Api
 ### pack( format, array )
 
 Encode the data in the `array` accorting to the `format`, and return
-a Buffer containing the packed bytes.
+a Buffer containing the packed bytes.  The actual offset in the array
+will be used as the field tag; for `protobuf` compatibility, do not use
+offset 0.
 
 ### _pack( format, array, bytebuf, pos )
 
@@ -34,7 +36,8 @@ Encode the data into the given buffer `bytebuf` starting at offset `pos.p`.
 ### unpack( format, bytebuf )
 
 Decode the binary data in `bytebuf` according to the `format`.
-Returns an array, possibly sparse, of data items.
+Returns an array of data items, each stored at the array offset that is the
+same as stored field tag.
 
 ### _unpack( format, bytebuf, pos )
 
@@ -55,20 +58,42 @@ The number of data items converted is controlled by the format string.
 
 As of 12/6/17:
 
-    'i': { wt: 0, enc: encodeVarint, dec: decodeVarint },       // int
+    'i': { wt: 0, enc: encodeVarint, dec: decodeVarint },       // sint
     'I': { wt: 0, enc: encodeUVarint, dec: decodeUVarint },     // uint
     'b': { wt: 0,                                               // bool
            enc: function(v, buf, pos) { buf[pos.p++] = v ? 1 : 0 },
            dec: function(buf, pos) { return buf[pos.p++] ? true : false } },
     'd': { wt: 1, enc: encodeDouble, dec: decodeDouble },       // double
-    'q': { wt: 1, enc: encodeInt64, dec: decodeInt64 },         // int64
+    'q': { wt: 1, enc: encodeInt64, dec: decodeInt64 },         // sint64
     'P': { wt: 1, enc: encodeUInt64, dec: decodeUInt64 },       // uint64
     'a': { wt: 2, enc: encodeString, dec: decodeString },       // string
     'Z': { wt: 2, enc: encodeBinary, dec: decodeBinary },       // binary
     'f': { wt: 5, enc: encodeFloat, dec: decodeFloat },         // float
-    'l': { wt: 5, enc: encodeInt32, dec: decodeInt32 },         // int32
-    'V': { wt: 5, enc: encodeUInt32, dec: decodeUInt32 },       // uint32
+    'l': { wt: 5, enc: encodeInt32, dec: decodeInt32 },         // sfixed32
+    'V': { wt: 5, enc: encodeUInt32, dec: decodeUInt32 },       // fixed32
     // enum? (else int32)
+
+The protocol-buffers prototype scalar value types are stored as
+
+    type          fmt   wt      
+    double        `d`   1       8 byte double
+    float         `f`   5       4 byte float
+    int32         `I`   0       unsigned varint.  Stores the bit pattern,
+                                ie -1 stored as ffffffff.  On decode bits
+                                are sign-extended.
+    int64         `I`   0       unsigned varint.  Stores all negative bits;
+                                on decode bits are sign-extended.
+    uint32        `I`   0       unsigned varint
+    uint64        `I`   0       unsigned varint
+    sint32        `i`   0       signed varint
+    sint64        `i`   0       signed varint
+    fixed32       `l`   5       always 4 bytes, ?decodes as unsigned?
+    fixed64       `q`   1       always 8 bytes
+    sfixed32      `l`   5       always 4 bytes, sign-extended on decode
+    sfixed64      `q`   1       always 8 bytes, sign-extended on decode
+    bool          `i`   0       varint 0 or 1
+    string        `a`   2       string, must be Utf-8 or 7-bit ASCII
+    bytes         `Z`   2       binary string
 
 
 Todo
@@ -88,3 +113,5 @@ Related Work
 - [`protobuf`](https://npmjs.com/package/protobuf)
 - [`qbson`](https://github.com/andrasq/node-qbson)
 - [`qunpack`](https://npmjs.com/package/qunpack)
+- https://developers.google.com/protocol-buffers/docs/encoding (wire protocol)
+- https://developers.google.com/protocol-buffers/docs/proto (`.proto` sytax)
