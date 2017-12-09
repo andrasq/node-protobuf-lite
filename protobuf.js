@@ -48,6 +48,7 @@ function unpack( format, data ) {
 var convMap = {
     'i': { wt: 0, enc: encodeVarint, dec: decodeVarint },       // int
     'I': { wt: 0, enc: encodeUVarint, dec: decodeUVarint },     // uint
+    'j': { wt: 0, enc: encodeVarint32, dec: decodeVarint32 },   // int
     'b': { wt: 0,                                               // bool
            enc: function(v, buf, pos) { buf[pos.p++] = v ? 1 : 0 },
            dec: function(buf, pos) { return buf[pos.p++] ? true : false } },
@@ -65,13 +66,14 @@ var convMap = {
 function _pack( format, data, buf, pos ) {
     var fieldnum = pos.fieldnum || 0;
     for (var fi=0; fi<format.length; fi++, fieldnum++) {
+        if (data[fieldnum] === undefined) continue;
         var fmt = format[fi];
         // if needed, insert support for multi-char formats here
         var conv = convMap[fmt];
         if (conv) {
             //encodeUVarint(fieldnum * 8 + conv.wt, buf, pos);
             encodeType(fieldnum, conv.wt, buf, pos);
-            if (data[fieldnum] !== undefined) conv.enc(data[fieldnum], buf, pos);
+            conv.enc(data[fieldnum], buf, pos);
         }
         else throw new Error(fmt + ": unknown pack conversion at offset " + fi);
     }
@@ -113,6 +115,18 @@ function encodeUVarint( n, buf, pos ) {
     }
     // TODO: this stores -1 as 127... is that a problem?
     buf[pos.p++] = n & 0x7f;
+}
+
+// encode the 32 low bits of the twos complement value n
+// Stored as unsigned, but will decode as a signed 32-bit int.
+function encodeVarint32( n, buf, pos ) {
+    encodeUVarint(n >>> 0, buf, pos);
+}
+
+// encode 64 bits of the twos complement value n
+// Stored as unsigned, but will decode as a signed 64-bit int.
+function encodeVarint64( n, buf, pos ) {
+    // FIXME: WRITEME
 }
 
 // negative numbers are stored in ones complement with a sign bit,
@@ -189,6 +203,16 @@ function decodeUVarint( buf, pos ) {
     } while (buf[pos.p++] & 0x80);
 
     return val;
+}
+
+function decodeVarint32( buf, pos ) {
+    var v = decodeUVarint(buf, pos);
+    // make negative 32-bit values negative, positives and overflows as is
+    return v >= 0x80000000 && v < 0x100000000 ? (v >> 0) : v;
+}
+
+function decodeVarint64( buf, pos ) {
+    // FIXME: WRITEME
 }
 
 function decodeVarint( buf, pos ) {

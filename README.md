@@ -78,10 +78,10 @@ The protocol-buffers prototype scalar value types are stored as
     type          fmt   wt      
     double        `d`   1       8 byte double
     float         `f`   5       4 byte float
-    int32         `I`   0       unsigned varint.  Stores the bit pattern,
+    int32         `j`   0       unsigned varint.  Stores the bit pattern,
                                 ie -1 stored as ffffffff.  On decode bits
                                 are sign-extended.
-    int64         `I`   0       unsigned varint.  Stores all negative bits;
+    int64          -    0       unsigned varint.  Stores all negative bits;
                                 on decode bits are sign-extended.
     uint32        `I`   0       unsigned varint
     uint64        `I`   0       unsigned varint
