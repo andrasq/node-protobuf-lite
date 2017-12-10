@@ -65,9 +65,9 @@ var convMap = {
 
 function _pack( format, data, buf, pos ) {
     var fieldnum = pos.fieldnum || 0;
-    for (var fi=0; fi<format.length; fi++, fieldnum++) {
+    for (var fieldnum=0, fi=0; fieldnum<data.length; fieldnum++) {
         if (data[fieldnum] === undefined) continue;
-        var fmt = format[fi];
+        var fmt = format[fi++];
         // if needed, insert support for multi-char formats here
         var conv = convMap[fmt];
         if (conv) {
@@ -207,7 +207,7 @@ function decodeUVarint( buf, pos ) {
 
 function decodeVarint32( buf, pos ) {
     var v = decodeUVarint(buf, pos);
-    // make negative 32-bit values negative, positives and overflows as is
+    // make negative 32-bit values negative, leave others as is
     return v >= 0x80000000 && v < 0x100000000 ? (v >> 0) : v;
 }
 
