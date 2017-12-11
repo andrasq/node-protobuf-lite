@@ -20,7 +20,7 @@
 
 var qutf8 = require('q-utf8');
 
-module.exports = {
+var protobuf = module.exports = {
     pack: pack,
     unpack: unpack,
     _pack: _pack,
@@ -36,13 +36,13 @@ function pack( format, data ) {
     //var buf = new Buffer(1000);
     var pos = { p: 0, fieldnum: 0 };
 
-    _pack(format, data, buf, pos);
+    protobuf._pack(format, data, buf, pos);
     //return pos.p < buf.length ? buf.slice(0, pos.p) : buf;
     return new Buffer(buf);
 }
 
 function unpack( format, data ) {
-    return _unpack(format, data, {p:0});
+    return protobuf._unpack(format, data, {p:0});
 }
 
 var convMap = {
