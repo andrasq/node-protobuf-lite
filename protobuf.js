@@ -80,26 +80,22 @@ function _pack( format, data, buf, pos ) {
     return buf;
 }
 
-function encodeType( fieldnum, wiretype, buf, pos ) {
-    encodeUVarint(fieldnum * 8 + wiretype, buf, pos);
-}
-
+// NOTE: the fields are normally decoded according to the
 function _unpack( format, buf, pos ) {
     var data = new Array();
-    var key, fieldnu, wiretype;
+    var key, fieldnum, wiretype, conv;
 
-    for (var fi=0; fi<format.length; fi++) {
-        var startPos = pos.p;
+    var len = format.length;
+    for (var fi=0; fi<len; fi++) {
         key = decodeUVarint(buf, pos);
-        fieldnum = Math.floor(key / 8);
         wiretype = key & 7;
+        fieldnum = key >>> 3;
 
         var fmt = format[fi];
         // if needed, insert support for multi-char formats here
-        var conv = convMap[fmt];
+        conv = convMap[fmt];
         if (conv) {
-            //if (conv.wt !== wiretype) throw new Error("wiretype mis-match at byte offset " + (startPos - 1));
-            data[fieldnum++] = conv.dec(buf, pos);
+            data[fieldnum] = conv.dec(buf, pos);
         }
         else throw new Error(fmt + ": unknown unpack conversion at offset " + fi);
 
@@ -107,7 +103,12 @@ function _unpack( format, buf, pos ) {
     return data;
 }
 
+function encodeType( fieldnum, wiretype, buf, pos ) {
+    encodeUVarint(fieldnum * 8 + wiretype, buf, pos);
+}
+
 function encodeUVarint( n, buf, pos ) {
+    // TODO: if n < 0, while (n & 0x7f) { ... } ... but might end up with 1023 bits!!
     while (n >= 128) {
         buf[pos.p++] = 0x80 | (n & 0x7f);
         //n /= 128;
@@ -192,17 +193,27 @@ function encodeBinary( bytes, buf, pos ) {
 
 function decodeUVarint( buf, pos ) {
     var byte = buf[pos.p++];
-
     if (! (byte & 0x80)) return byte;
 
     var val = byte & 0x7f;
     var scale = 128;
     do {
-        val += (buf[pos.p] & 0x7f) * scale;
+        byte = buf[pos.p++];
+        val += (byte & 0x7f) * scale;
         scale *= 128;
-    } while (buf[pos.p++] & 0x80);
-
+    } while (byte & 0x80);
     return val;
+}
+
+function decodeVarint( buf, pos ) {
+    var byte = buf[pos.p++];
+    var val = (byte & 0x7e) >>> 1;
+
+    // multi-byte values
+    if (byte >= 0x80) val += 64 * decodeUVarint(buf, pos);
+
+    // decode as 0..63 or -1..-64
+    return (byte & 1) ? -val - 1 : val;
 }
 
 function decodeVarint32( buf, pos ) {
@@ -215,16 +226,6 @@ function decodeVarint64( buf, pos ) {
     // FIXME: WRITEME
 }
 
-function decodeVarint( buf, pos ) {
-    var byte = buf[pos.p++];
-    var val = (byte & 0x7e) >>> 1;
-
-    // single-byte value 0..63 or -64..-1
-    if (! (byte & 0x80)) return (byte & 1) ? -(val + 1) : val;
-
-    val += 64 * decodeUVarint(buf, pos);
-    return (byte & 1) ? -(val + 1) : val;
-}
 
 var tmpbuf = new Buffer(8);
 function decodeFloat( buf, pos ) {
