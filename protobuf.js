@@ -131,10 +131,13 @@ function encodeVarint( n, buf, pos ) {
     if (n >= 64) encodeUVarint(n / 64, buf, pos);
 }
 
-// encode the 32 low bits of the twos complement value n
-// Stored as unsigned, but will decode as a signed 32-bit int.
+// spec says negative int32 are always encoded as 10 bytes, so just use the Varint64 code.
+// This breaks procol-buffers compat (which stores only 32 bits and leaves overlongs as positive).
+// "If you use int32 or int64 as the type for a negative number, the resulting varint
+// is always ten bytes long -- it is, effectively, treated like a very large unsigned
+// integer." (encoding doc, "More Value Types").
 function encodeVarint32( n, buf, pos ) {
-    encodeUVarint(n >>> 0, buf, pos);
+    encodeVarint64(n, buf, pos);
 }
 
 // encode 64 bits of the twos complement value n
@@ -232,10 +235,9 @@ function decodeVarint( buf, pos ) {
     return (byte & 1) ? -val - 1 : val;
 }
 
+// spec says negative int32 are always 10 bytes, so decode as Varint64
 function decodeVarint32( buf, pos ) {
-    var v = decodeUVarint(buf, pos);
-    // make negative 32-bit values negative, leave others as is
-    return v >= 0x80000000 && v < 0x100000000 ? (v >> 0) : v;
+    return decodeVarint64(buf, pos);
 }
 
 // to recover -1 as negative, must not overflow 53 bits.

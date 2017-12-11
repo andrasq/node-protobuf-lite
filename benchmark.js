@@ -71,6 +71,11 @@ var dataA = [ , -1, -2, -3 ];
 var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
 var format = "kkk";
 
+var schema = 'message Test { required int32 a = 1; required int32 b = 2; required int32 c = 3; }';
+var dataA = [ , -1, -2, -3 ];
+var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
+var format = "jjj";
+
 
 var json = JSON.stringify(data);
 

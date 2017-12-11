@@ -1,6 +1,6 @@
 {
   "name": "protobuf-lite",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "protocol buffers, much simplified",
   "keywords": [ "pack", "unpack", "protocol", "buffer", "protobuf", "protocol buffers" ],
   "main": "protobuf.js",

@@ -56,10 +56,11 @@ For example, the format `'iVad'` would store the first four data items from the 
 array, packing them as `varint`, `uint32`, `string` and `double64`, respectively.
 The number of data items converted is controlled by the format string.
 
-As of 12/6/17:
+As of 12/10/17:
 
     'i': { wt: 0, enc: encodeVarint, dec: decodeVarint },       // sint
     'I': { wt: 0, enc: encodeUVarint, dec: decodeUVarint },     // uint
+    'j'; { wt: 0, enc: encodeUVarint64, dec: decodeUVarint64 }, // int32, int64
     'b': { wt: 0,                                               // bool
            enc: function(v, buf, pos) { buf[pos.p++] = v ? 1 : 0 },
            dec: function(buf, pos) { return buf[pos.p++] ? true : false } },
@@ -79,9 +80,9 @@ The protocol-buffers prototype scalar value types are stored as
     double        `d`   1       8 byte double
     float         `f`   5       4 byte float
     int32         `j`   0       signed varint.  Stores unsigned bits;
-                                ie -1 stored as ffffffff.  On decode bits
+                                ie -1 stored as 8x 0xff.  On decode bits
                                 are sign-extended.
-    int64         `k`   0       signed varint.  Stores unsigned bits;
+    int64         `j`   0       signed varint.  Stores unsigned bits;
                                 on decode bits are sign-extended.
     uint32        `I`   0       unsigned varint
     uint64        `I`   0       unsigned varint
