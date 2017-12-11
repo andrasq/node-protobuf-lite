@@ -49,6 +49,7 @@ var convMap = {
     'i': { wt: 0, enc: encodeVarint, dec: decodeVarint },       // int
     'I': { wt: 0, enc: encodeUVarint, dec: decodeUVarint },     // uint
     'j': { wt: 0, enc: encodeVarint32, dec: decodeVarint32 },   // int
+    'k': { wt: 0, enc: encodeVarint64, dec: decodeVarint64 },   // uint
     'b': { wt: 0,                                               // bool
            enc: function(v, buf, pos) { buf[pos.p++] = v ? 1 : 0 },
            dec: function(buf, pos) { return buf[pos.p++] ? true : false } },
@@ -118,18 +119,6 @@ function encodeUVarint( n, buf, pos ) {
     buf[pos.p++] = n & 0x7f;
 }
 
-// encode the 32 low bits of the twos complement value n
-// Stored as unsigned, but will decode as a signed 32-bit int.
-function encodeVarint32( n, buf, pos ) {
-    encodeUVarint(n >>> 0, buf, pos);
-}
-
-// encode 64 bits of the twos complement value n
-// Stored as unsigned, but will decode as a signed 64-bit int.
-function encodeVarint64( n, buf, pos ) {
-    // FIXME: WRITEME
-}
-
 // negative numbers are stored in ones complement with a sign bit,
 // e.g. -2 111110 => 00001.1 and -6 111010 => 00101.1
 // "Ones complement" == "two's complement - 1", and "two's complement" is
@@ -140,6 +129,33 @@ function encodeVarint( n, buf, pos ) {
 
     buf[pos.p++] = ((n >= 64) ? 0x80 : 0x00) | ((n & 0x3f) << 1) | negative;
     if (n >= 64) encodeUVarint(n / 64, buf, pos);
+}
+
+// encode the 32 low bits of the twos complement value n
+// Stored as unsigned, but will decode as a signed 32-bit int.
+function encodeVarint32( n, buf, pos ) {
+    encodeUVarint(n >>> 0, buf, pos);
+}
+
+// encode 64 bits of the twos complement value n
+// Stored as unsigned, but will decode as a signed 64-bit int.
+// Work with the ones complement halves to keep things positive,
+// to not truncate (-1/2) to 0:  (1111.1 >>> 0) == 0.
+function encodeVarint64( n, buf, pos ) {
+    if (n >= 0) return encodeUVarint(n, buf, pos);
+
+    n = -n - 1;
+    var v1 = (0xFFFFFFFF ^ n) >>> 0;
+    var v2 = (0xFFFFFFFF ^ (n / 0x100000000)) >>> 0;
+
+    while (v2 > 0) {
+        buf[pos.p++] = 0x80 | (v1 & 0x7f);
+        v1 = ((v2 & 0x7f) << 25) | (v1 >>> 7);
+        v2 = v2 >>> 7;
+    }
+    while (v1 >= 0x100000000) { buf[pos.p++] = 0x80 | (v1 & 0x7f); v1 /= 128; }
+    while (v1 >= 128) { buf[pos.p++] = 0x80 | (v1 & 0x7f); v1 >>>= 7; }
+    buf[pos.p++] = v1 & 0x7f;
 }
 
 var tmpbuf = new Buffer(8);
@@ -222,10 +238,37 @@ function decodeVarint32( buf, pos ) {
     return v >= 0x80000000 && v < 0x100000000 ? (v >> 0) : v;
 }
 
+// to recover -1 as negative, must not overflow 53 bits.
+// decodeUVarint would overflow and round -1 ffff to +2e64, 10000.
+// Gather the positive ones complement halves, then assemble.
+// v1 holds the low 21 bits, v2 the high 43 bits.
+// More than 64 bits is rejected as NaN.
+var _2e21 = Math.pow(2, 21);
+var _2e42 = Math.pow(2, 42);
+var _2e43 = Math.pow(2, 43);
 function decodeVarint64( buf, pos ) {
-    // FIXME: WRITEME
-}
+    var byte = buf[pos.p++];
+    var v1 = (byte & 0x7f);
+    if (! (byte & 0x80)) return v1;
 
+    // low 21 bits
+    byte = buf[pos.p++];
+    v1 += (byte & 0x7f) << 7;
+    if (! (byte & 0x80)) return v1;
+
+    byte = buf[pos.p++];
+    v1 += (byte & 0x7f) << 14;
+    if (! (byte & 0x80)) return v1;
+
+    // high 43 bits
+    var v2 = decodeUVarint(buf, pos);
+
+    if (v2 >= _2e43) return NaN;
+
+    if (v2 < _2e42) return v2 * _2e21 + v1;     // positive
+    v2 = -(_2e43 - v2);
+    return v2 * _2e21 + v1;
+}
 
 var tmpbuf = new Buffer(8);
 function decodeFloat( buf, pos ) {

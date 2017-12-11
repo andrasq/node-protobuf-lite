@@ -66,13 +66,20 @@ var data = { a: 1234, b: 23456, c: 345678 };
 var dataA = [ , 1234, 23456, 345678 ];
 var format = "iii";
 
+var schema = 'message Test { required int64 a = 1; required int64 b = 2; required int64 c = 3; }';
+var dataA = [ , -1, -2, -3 ];
+var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
+var format = "kkk";
+
 
 var json = JSON.stringify(data);
 
 var messages = pbuf(schema);
 var buf = messages.Test.encode(data);
 console.log("AR: buf", buf);
+console.log("AR: test encode", pblite.pack(format, dataA));
 console.log("AR: test decode", pblite.unpack(format, buf));
+console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
 
 var item = messages.Test.decode(buf);
 console.log("AR: item", item);
