@@ -1,6 +1,8 @@
 protobuf-lite
 =============
 
+_WORK IN PROGRESS_
+
 Light-weight protocol buffers implementation.  Reads and writes the wire protocol and
 converts some of the more common data types.  The program data is kept in native
 JavaScript format, so no true 64-bit ints. Also no maps, services, groups, extensions,
