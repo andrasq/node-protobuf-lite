@@ -103,7 +103,6 @@ Todo
 ----
 
 - needs tests
-- split out float/double decoding into a separate package
 - verify that `j` and `k` encoding are match what is expected
 
 
