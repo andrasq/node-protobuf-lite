@@ -65,6 +65,7 @@ var convMap = {
     // enum? (else int32)
 };
 
+// when a message is serialized [fields] should be written sequentially by field number
 function _pack( format, data, buf, pos ) {
     var fieldnum = pos.fieldnum || 0;
     for (var fieldnum=0, fi=0; fieldnum<data.length; fieldnum++) {
@@ -154,7 +155,7 @@ function encodeVarint64( n, buf, pos ) {
 
     while (v2 > 0) {
         buf[pos.p++] = 0x80 | (v1 & 0x7f);
-        v1 = ((v2 & 0x7f) << 25) | (v1 >>> 7);
+        v1 = ((v2 & 0x7f) << (32 - 7)) | (v1 >>> 7);
         v2 = v2 >>> 7;
     }
     while (v1 >= 0x100000000) { buf[pos.p++] = 0x80 | (v1 & 0x7f); v1 /= 128; }
@@ -185,6 +186,7 @@ function encodeUInt32( v, buf, pos ) {
 
 // store two-s complement little-endian 64-bit integer
 function encodeInt64( v, buf, pos ) {
+    if (v < 0) return encodeVarint64(v, buf, pos);
     encodeUInt32(v &  0xffffffff, buf, pos);
     encodeUInt32(v / 0x100000000, buf, pos);
 }

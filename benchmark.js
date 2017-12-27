@@ -88,8 +88,8 @@ var buf = messages.Test.encode(data);
 //console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
 
 var item = messages.Test.decode(buf);
-console.log("AR: item", item);
-console.log("AR: unpacked", pblite.unpack(format, buf));
+//console.log("AR: item", item);
+//console.log("AR: unpacked", pblite.unpack(format, buf));
 
 var x;
 var qtimeit = require('qtimeit');

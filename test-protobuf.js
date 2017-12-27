@@ -40,7 +40,53 @@ module.exports = {
         'should tag with the array offset': function(t) {
             var buf = pb.pack('ii', [,,,1,,2]);
             t.deepEqual(buf, [0x18, 2, 0x28, 4]);
-            t.skip();
+            t.done();
+        },
+
+        'should encode and decode scalar types': function(t) {
+            // note: int32 spec calls for negatives to be encoded in 10 bytes as 64-bit twos complement
+            var tests = [
+                [ 'i', -1, [0, 1] ],                                                    // signed varint
+                [ 'I', 0xffffffff, [0, 255, 255, 255, 255, 0x0f] ],                     // unsigned varint
+                [ 'j', 1, [0, 1] ],                                                     // int32, int64
+                [ 'j', -1, [0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1] ],       // int32, int64
+// FIXME: make encodeVarint64 v1 finish with the high bit set!
+                [ 'j', -Math.pow(2, 39), [0, 128, 128, 128, 128, 128, 0xf0, 255, 255, 255, 1] ],        // int64
+                [ 'b', true, [0, 1] ],
+                [ 'b', false, [0, 0] ],
+                [ 'd', 0.25, [1, 0, 0, 0, 0, 0, 0, 0xd0, 0x3f] ],
+                [ 'q', 1, [1, 1, 0, 0, 0, 0, 0, 0, 0] ],        // sint64
+                [ 'P', 1, [1, 1, 0, 0, 0, 0, 0, 0, 0] ],                                // int64
+                [ 'P', -1, [1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1] ],       // int64
+                [ 'a', 'hello test', [2, 0x0a, 104, 101, 108, 108, 111, 32, 116, 101, 115, 116] ],
+                [ 'Z', new Buffer('hello test'), [2, 0x0a, 104, 101, 108, 108, 111, 32, 116, 101, 115, 116] ],
+                [ 'f', 0.25, [5, 0, 0, 0x80, 0x3e] ],
+                [ 'l', 1, [5, 1, 0, 0, 0] ],                    // sfixed32
+                [ 'l', -1, [5, 255, 255, 255, 255] ],           // sfixed32
+                [ 'V', 1, [5, 1, 0, 0, 0] ],                    // ufixed32
+                [ 'V', -1, [5, 255, 255, 255, 255] ],           // ufixed32 ??? TODO: verify
+                [ 'V', 0xffffffff, [5, 255, 255, 255, 255] ],           // ufixed32
+                [ 'V', -1, [5, 255, 255, 255, 255] ],           // ufixed32
+                [ 'a', 'hello', [2, 5, 104, 101, 108, 108, 111] ],
+                [ 'Z', new Buffer('hello'), [2, 5, 104, 101, 108, 108, 111] ],
+// FIXME: break
+//                [ 'q', -1, [1, 255, 255, 255, 255, 255, 255, 255, 255] ],
+//                [ 'P', -1, [1, 255, 255, 255, 255, 255, 255, 255, 255] ],
+            ];
+
+            for (var i=0; i<tests.length; i++) {
+                var fmt = tests[i][0];
+                var item = tests[i][1];
+                var expect = tests[i][2];
+                t.deepEqual(pb._pack(fmt, [item], [], {p:0}), expect, "_pack test " + i);
+                t.deepEqual(pb.pack(fmt, [item]), new Buffer(expect), "pack test " + i);
+                if ((fmt !== 'V' && fmt !== 'P') || item >= 0) {
+                    t.deepEqual(pb.unpack(fmt, expect), [ item ] , "unpack test " + i);
+                    t.deepEqual(pb.unpack(fmt, new Buffer(expect)), [ item ] , "unpack test " + i);
+                }
+            }
+
+            t.done();
         },
 
         'varint': function(t) {
@@ -115,6 +161,12 @@ module.exports = {
     'unpack': {
         'should return an Array': function(t) {
             t.ok(Array.isArray(pb.unpack("", [])));
+            t.done();
+        },
+
+        'should extract to the array offset': function(t) {
+            var buf = pb.pack('ii', [,,,1,,2]);
+            t.deepEqual(pb.unpack('ii', buf), [,,,1,,2]);
             t.done();
         },
     },
