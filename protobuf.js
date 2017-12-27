@@ -19,6 +19,7 @@
 **/
 
 var qutf8 = require('q-utf8');
+var fp = require('ieee-float');
 
 var protobuf = module.exports = {
     pack: pack,
@@ -163,13 +164,11 @@ function encodeVarint64( n, buf, pos ) {
 
 var tmpbuf = new Buffer(8);
 function encodeFloat( v, buf, pos ) {
-    tmpbuf.writeFloatLE(v);
-    for (var i=0; i<4; i++) buf[pos.p++] = tmpbuf[i];
+    fp.writeFloatLE(buf, v, (pos.p += 4) - 4);
 }
 
 function encodeDouble( v, buf, pos ) {
-    tmpbuf.writeDoubleLE(v);
-    for (var i=0; i<8; i++) buf[pos.p++] = tmpbuf[i];
+    fp.writeDoubleLE(buf, v, (pos.p += 8) - 8);
 }
 
 // store two-s complement little-endian 32-bit integer
@@ -274,17 +273,11 @@ function decodeVarint64( buf, pos ) {
 
 var tmpbuf = new Buffer(8);
 function decodeFloat( buf, pos ) {
-    return decodeFloat32(buf, pos);
-
-    for (var i=0; i<4; i++) tmpbuf[i] = buf[pos.p++];
-    return tmpbuf.readFloatLE(tmpbuf);
+    return fp.readFloatLE(buf, (pos.p += 4) - 4);
 }
 
 function decodeDouble( buf, pos) {
-    return decodeFloat64(buf, pos);
-
-    for (var i=0; i<8; i++) tmpbuf[i] = buf[pos.p++];
-    return tmpbuf.readDoubleLE(tmpbuf);
+    return fp.readDoubleLE(buf, (pos.p += 8) - 8);
 }
 
 function decodeInt32( buf, pos ) {
@@ -320,92 +313,11 @@ function decodeBinary( buf, pos ) {
     return bytes;
 }
 
-// getFloat() from qbson, https://github.com/andrasq/node-qbson:
-/*
- * extract the 64-bit little-endian ieee 754 floating-point value 
- *   see http://en.wikipedia.org/wiki/Double-precision_floating-point_format
- *   1 bit sign + 11 bits exponent + (1 implicit mantissa 1 bit) + 52 mantissa bits
- *
- * Originally from `json-simple`, then `qbson.decode` - AR.
- * SKL 4.5g 52m/s; readFloatLE 15m/s
- */
-var _rshift32 = (1 / 0x100000000);      // >> 32 for floats
-var _rshift20 = (1 / 0x100000);         // >> 20 for floats
-var _lshift32 = (1 * 0x100000000);      // << 32
-var _rshift52 = (1 * _rshift32 * _rshift20);    // >> 52
-var _rshift1023 = pow2(-1023);          // 2^-1023
-function decodeFloat64( buf, pos ) {
-    var lowWord = decodeUInt32(buf, pos);
-    var highWord = decodeUInt32(buf, pos);
-    var mantissa = (highWord & 0x000FFFFF) * _lshift32 + lowWord;
-    var exponent = (highWord & 0x7FF00000) >> 20;
-    //var sign = (highWord >> 31);
-
-    var value;
-    if (exponent === 0x000) {
-        // zero if !mantissa, else subnormal (non-normalized reduced precision small value)
-        // recover negative zero -0.0 as distinct from 0.0
-        // subnormals do not have an implied leading 1 bit and are positioned 1 bit to the left
-        value = mantissa ? (mantissa * _rshift52) * pow2(-1023 + 1) : 0.0;
-        //value = mantissa ? (mantissa * _rshift52) * 2 * _rshift1023 : 0.0;
-        return (highWord >> 31) ? -value : value;
-    }
-    else if (exponent < 0x7ff) {
-        // normalized value with an implied leading 1 bit and 1023 biased exponent
-        exponent -= 1023;
-        value = (1 + mantissa * _rshift52) * pow2(exponent);
-        //value = (1 + mantissa * _rshift52) * pow2(exponent) * _rshift1023;
-        return (highWord >> 31) ? -value : value;
-    }
-    else {
-        // Infinity if zero mantissa (+/- per sign), NaN if nonzero mantissa
-        return value = mantissa ? NaN : (highWord >> 31) ? -Infinity : Infinity;
-    }
-}
-//
-// float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
-// see https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-// UNTESTED
-// Exponent     Mantissa 0      Mantissa > 0    Value
-// 00          +0, -0          denormalized     2^(  1-127) * (0. + (mantissa / 2^23))
-// 00.. FE                     normalized       2^(exp-127) * (1. + (mantissa / 2^23))
-// FF          +/-Infinity     NaN              -
-//
-var _rshift23 = pow2(-23);      // >> 23 for floats
-var _rshift127 = pow2(-127);    // 2^-127
-function decodeFloat32( buf, pos ) {
-    var word = decodeUInt32(buf, pos);
-    var mantissa = (word & 0x007FFFFF);
-    var exponent = (word & 0x7F800000) >>> 23;
-    //var sign =     (word >> 31);
-
-    var value;
-    if (exponent === 0x000) {
-        //value = mantissa ? (mantissa * _rshift23) * 2 * _rshift127 : 0.0;
-        value = mantissa ? (mantissa * _rshift23) * pow2(-127 + 1) : 0.0;
-        return (word >> 31) ? -value : value;
-    }
-    else if (exponent < 0xff) {
-        value = (1 + mantissa * _rshift23) * pow2(exponent) * _rshift127;
-        return (word >> 31) ? -value : value;
-    }
-    else {
-        value = mantissa ? NaN : sign ? -Infinity : Infinity;
-        return value;
-    }
-}
-// given an exponent n, return 2**n
-// n is always an integer, faster to shift when possible
-function pow2( exp ) {
-    return (exp >= 0) ? (exp <  31 ? (1 << exp) :        Math.pow(2, exp))
-                      : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
-}
-
 
 /** quicktest:
 
 var assert = require('assert');
-var qtimeit = require('./timeit');
+var qtimeit = require('qtimeit');
 
 assert.equal(decodeUVarint(new Buffer([0x9E, 0xA7, 0x05]), {p:0}), 86942);
 assert.equal(decodeUVarint(new Buffer([0x8E, 0x02]), {p:0}), 270);
@@ -414,16 +326,6 @@ assert.equal(decodeUVarint(new Buffer([0xAC, 0x02]), {p:0}), 300);
 var buf = new Buffer([0x82, 0x81, 0x01]);        // 1.000001.0 1.0000001 0.0000001 = 1 + 64 + 128*64 = 8257
 var val = decodeVarint(buf, {p: 0});
 console.log("AR:", val, buf);
-
-var tmpbuf = new Buffer(8);
-tmpbuf.writeFloatLE(1234.5); assert.equal(decodeFloat32(tmpbuf, {p:0}), 1234.5);
-tmpbuf.writeFloatLE(1234.5e-20); assert.equal(decodeFloat32(tmpbuf, {p:0}), tmpbuf.readFloatLE());
-tmpbuf.writeFloatLE(1234.5e-10); assert.equal(decodeFloat32(tmpbuf, {p:0}), tmpbuf.readFloatLE());
-tmpbuf.writeFloatLE(1234.5e10); assert.equal(decodeFloat32(tmpbuf, {p:0}), tmpbuf.readFloatLE());
-tmpbuf.writeFloatLE(1234.5e20); assert.equal(decodeFloat32(tmpbuf, {p:0}), tmpbuf.readFloatLE());
-tmpbuf.writeFloatLE(0); assert.strictEqual(decodeFloat32(tmpbuf, {p:0}), 0);
-tmpbuf.writeFloatLE(-0); assert.strictEqual(decodeFloat32(tmpbuf, {p:0}), -0);
-tmpbuf.writeFloatLE(NaN); assert.ok(isNaN(decodeFloat32(tmpbuf, {p:0})));
 
 // encode/decode unsigned varint
 for (var i = 0; i < 100100; i++) {
@@ -467,46 +369,22 @@ var jsonString = JSON.stringify(data);
 var jsonBuf = new Buffer(JSON.stringify(data));
 var packBuf = pack(format, data);
 var packArray = _pack(format, data, new Array(), {p:0});
-console.log("AR: pack/unpack buf", data, packBuf, _unpack(format, packBuf, {p:0}));
-console.log("AR: pack/unpack array", data, new Buffer(packArray), _unpack(format, packArray, {p:0}));
+//console.log("AR: pack/unpack buf", data, packBuf, _unpack(format, packBuf, {p:0}));
+//console.log("AR: pack/unpack array", data, new Buffer(packArray), _unpack(format, packArray, {p:0}));
 
 var tmpBuf = new Buffer(1000);
 var floatBuf = new Buffer(4); floatBuf.writeFloatLE(1234.5);
-assert.equal(decodeFloat32(floatBuf, {p:0}), floatBuf.readFloatLE());
+assert.equal(decodeFloat(floatBuf, {p:0}), floatBuf.readFloatLE());
 var doubleBuf = new Buffer(8); doubleBuf.writeDoubleLE(1234.5e-200);
 var doubleBuf = new Buffer(8); doubleBuf.writeDoubleLE(1234.5);
-assert.equal(decodeFloat64(doubleBuf, {p:0}), doubleBuf.readDoubleLE());
+assert.equal(decodeDouble(doubleBuf, {p:0}), doubleBuf.readDoubleLE());
 
-/**/ // end quicktest
-
-if (0) {
+if (1) {
+var qtimeit = require('qtimeit');
 var x;
 qtimeit.bench.timeGoal = .20;
 qtimeit.bench.visualize = true;
 qtimeit.bench({
-/**
-    'decodeFloat': function() { x = decodeFloat(floatBuf, {p:0}) },
-    'decodeFloat 2': function() { x = decodeFloat(floatBuf, {p:0}) },
-    // 2m/s Buffer.read, 50m/s js
-
-    'decodeFloat32': function() { x = decodeFloat32(floatBuf, {p:0}) },
-    'decodeFloat32 2': function() { x = decodeFloat32(floatBuf, {p:0}) },
-//    'decodeFloat32 3': function() { x = decodeFloat32(floatBuf, {p:0}) },
-//    'decodeFloat32 4': function() { x = decodeFloat32(floatBuf, {p:0}) },
-    // 33m/s Buffer.read, 50m/s js
-
-    'decodeDouble': function() { x = decodeDouble(doubleBuf, {p:0}) },
-    'decodeDouble 2': function() { x = decodeDouble(doubleBuf, {p:0}) },
-    // 1.9m/s Buffer.read, 35m/s js, 45m/s js
-
-    'decodeFloat64': function() { x = decodeFloat64(doubleBuf, {p:0}) },
-    'decodeFloat64 2': function() { x = decodeFloat64(doubleBuf, {p:0}) },
-//    'decodeFloat64 3': function() { x = decodeFloat64(doubleBuf, {p:0}) },
-//    'decodeFloat64 4': function() { x = decodeFloat64(doubleBuf, {p:0}) },
-    // 35m/s js
-/**/
-
-///**
     'pack': function() { x = pack(format, data) },
     //  620 k/s into new Buffer(), 2000 k/s into array -> then new Buffer(). (small struct, 1k buf)
     // '_pack': function() { x = _pack(format, data, tmpBuf, {p:0}) },
@@ -524,7 +402,6 @@ qtimeit.bench({
     // 3100 k/s
 
     'pack2': function() { x = pack(format, data) },
-/**/
 });
 
 console.log(x, unpack(format, x));

@@ -70,6 +70,40 @@ module.exports = {
             t.done();
         },
 
+        'float': function(t) {
+            var tests = [
+                [ 0.0, [5, 0, 0, 0, 0] ],
+                [ 0.25, [5, 0, 0, 0x80, 0x3e] ],
+                [ Math.pow(2, 40), [5, 0, 0, 0x80, 0x53] ],
+                [ NaN, [5, 0, 0, 0xc0, 0x7f] ],
+            ];
+
+            for (var i=0; i<tests.length; i++) {
+                t.deepEqual(pb.pack('f', [tests[i][0]]), tests[i][1]);
+                if (!isNaN(tests[i][0])) t.equal(pb.unpack('f', tests[i][1])[0], tests[i][0]);
+                else t.ok(isNaN(pb.unpack('f', tests[i][1])[0]));
+            }
+
+            t.done();
+        },
+
+        'double': function(t) {
+            var tests = [
+                [ 0.0, [1, 0, 0, 0, 0, 0, 0, 0, 0] ],
+                [ 0.25, [1, 0, 0, 0, 0, 0, 0, 0xd0, 0x3f] ],
+                [ Math.pow(2, 40), [1, 0, 0, 0, 0, 0, 0, 0x70, 0x42] ],
+                [ NaN, [1, 0, 0, 0, 0, 0, 0, 0xf8, 0x7f] ],
+            ];
+
+            for (var i=0; i<tests.length; i++) {
+                t.deepEqual(pb.pack('d', [tests[i][0]]), tests[i][1]);
+                if (!isNaN(tests[i][0])) t.equal(pb.unpack('d', tests[i][1])[0], tests[i][0]);
+                else t.ok(isNaN(pb.unpack('d', tests[i][1])[0]));
+            }
+
+            t.done();
+        },
+
         'errors': {
             'should throw on unrecognized conversion': function(t) {
                 t.throws(function(){ pb.pack('X', [1]) }, /unknown/);
