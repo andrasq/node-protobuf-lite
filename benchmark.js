@@ -61,6 +61,7 @@ var dataA = [
 ];
 
 
+/**
 var schema = 'message Test { required sint64 a = 1; required sint64 b = 2; required sint64 c = 3; }';
 var data = { a: 1234, b: 23456, c: 345678 };
 var dataA = [ , 1234, 23456, 345678 ];
@@ -75,16 +76,16 @@ var schema = 'message Test { required int32 a = 1; required int32 b = 2; require
 var dataA = [ , -1, -2, -3 ];
 var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
 var format = "jjj";
-
+**/
 
 var json = JSON.stringify(data);
 
 var messages = pbuf(schema);
 var buf = messages.Test.encode(data);
-console.log("AR: buf", buf);
-console.log("AR: test encode", pblite.pack(format, dataA));
-console.log("AR: test decode", pblite.unpack(format, buf));
-console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
+//console.log("AR: buf", buf);
+//console.log("AR: test encode", pblite.pack(format, dataA));
+//console.log("AR: test decode", pblite.unpack(format, buf));
+//console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
 
 var item = messages.Test.decode(buf);
 console.log("AR: item", item);
@@ -94,18 +95,19 @@ var x;
 var qtimeit = require('qtimeit');
 qtimeit.bench.timeGoal = .2;
 qtimeit.bench.visualize = true;
+qtimeit.bench.showRunDetails = false;
 qtimeit.bench({
     'pbuf enc': function() { x = messages.Test.encode(data) },
     'json enc': function() { x = JSON.stringify(data) },
     'pblite packA': function() { x = pblite.pack(format, dataA) },
-    'pblite _pack': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
+    'pblite _packA': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
 });
 console.log(JSON.stringify(x));
 
 qtimeit.bench({
     'pbuf dec': function() { x = messages.Test.decode(buf) },
     'json dec': function() { x = JSON.parse(json) },
-    'pblite unpack': function() { x = pblite.unpack(format, buf) },
+    'pblite unpackA': function() { x = pblite.unpack(format, buf) },
 });
 console.log(x);
 
