@@ -95,19 +95,20 @@ var x;
 var qtimeit = require('qtimeit');
 qtimeit.bench.timeGoal = .2;
 qtimeit.bench.visualize = true;
-qtimeit.bench.showRunDetails = false;
+console.log("");
 qtimeit.bench({
     'pbuf enc': function() { x = messages.Test.encode(data) },
     'json enc': function() { x = JSON.stringify(data) },
     'pblite packA': function() { x = pblite.pack(format, dataA) },
     'pblite _packA': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
 });
-console.log(JSON.stringify(x));
+//console.log(JSON.stringify(x));
 
+console.log("");
 qtimeit.bench({
     'pbuf dec': function() { x = messages.Test.decode(buf) },
     'json dec': function() { x = JSON.parse(json) },
-    'pblite unpackA': function() { x = pblite.unpack(format, buf) },
+    'pblite unpack': function() { x = pblite.unpack(format, buf) },
 });
 console.log(x);
 
