@@ -1,8 +1,9 @@
-// npm install qtimeit protocol-buffers
+// npm install qtimeit protocol-buffers protobufjs
 
 'use strict';
 
 var pbuf = require('protocol-buffers');
+var protobufjs = require('protobufjs');
 var pblite = require('./');
 
 var format = 'fa';
@@ -16,6 +17,18 @@ var schema = [
     '  required string payload = 2;',
     '}'
 ].join('\n');
+var pbjsJson = {
+    nested: {
+        Test: {
+            fields: {
+                num: { type: 'float', id: 1 },
+                payload: { type: 'string', id: 2 },
+            },
+        }
+    }
+};
+var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
+var pbjsMessage = pbjsRoot.lookupType('Test');
 var data = {
     num: 42,
     payload: 'hello world',
@@ -43,6 +56,31 @@ var schema = [
     '  required float flt = 15;',
     '}',
 ].join('\n');
+var pbjsJson = {
+    nested: {
+        Test: {
+            fields: {
+                str: { type: 'string', id: 1 },
+                iso: { type: 'uint32', id: 2 },
+                date: { type: 'int32', id: 3 },
+                long: { type: 'int64', id: 4 },
+                typeid: { type: 'int32', id: 5 },
+                sint: { type: 'sint32', id: 6 },
+                b1: { type: 'bool', id: 7 },
+                b2: { type: 'bool', id: 8 },
+                b3: { type: 'bool', id: 9 },
+                b4: { type: 'bool', id: 10 },
+                b5: { type: 'bool', id: 11 },
+                b6: { type: 'bool', id: 12 },
+                b7: { type: 'bool', id: 13 },
+                doub: { type: 'double', id: 14 },
+                flt: { type: 'float', id: 15 },
+            },
+        }
+    }
+};
+var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
+var pbjsMessage = pbjsRoot.lookupType('Test');
 var data = {
     str: 'Lorem ipsum dolor sit amet.',
     iso: 9000,
@@ -98,6 +136,7 @@ qtimeit.bench.visualize = true;
 console.log("");
 qtimeit.bench({
     'pbuf enc': function() { x = messages.Test.encode(data) },
+    'pbjs enc': function() { x = pbjsMessage.encode(pbjsMessage.create(data)).finish() },
     'json enc': function() { x = JSON.stringify(data) },
     'pblite packA': function() { x = pblite.pack(format, dataA) },
     'pblite _packA': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
@@ -107,6 +146,7 @@ qtimeit.bench({
 console.log("");
 qtimeit.bench({
     'pbuf dec': function() { x = messages.Test.decode(buf) },
+    'pbjs dec': function() { x = pbjsMessage.decode(buf) },
     'json dec': function() { x = JSON.parse(json) },
     'pblite unpack': function() { x = pblite.unpack(format, buf) },
 });

@@ -113,7 +113,7 @@ Related Work
 - [`protocol-buffers`](https://npmjs.com/package/protocol-buffers)
 - [`protocol-buffers-schema`](https://npmjs.com/package/protocol-buffers-schema)
 - [`protobufjs`](https://npmjs.com/package/protobufjs)
-- [`protobuf`](https://npmjs.com/package/protobuf)
+- [`protobuf`](https://npmjs.com/package/protobuf) - install breaks with node-v6 and g++-4.9.2
 - [`qbson`](https://github.com/andrasq/node-qbson)
 - [`qunpack`](https://npmjs.com/package/qunpack)
 - https://developers.google.com/protocol-buffers/docs/encoding (wire protocol)
