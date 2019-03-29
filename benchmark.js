@@ -166,7 +166,7 @@ for (var i=0; i<datasets.length; i++) {
     pbjsJson = datasets[i].pbjsJson;
     format = datasets[i].pbliteFormat;
 
-    var dataA = [undefined];
+    var dataA = [];
     for (var k in data) dataA.push(data[k]);
 
     // create a protocol-buffers coder

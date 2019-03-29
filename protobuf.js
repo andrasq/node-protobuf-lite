@@ -18,6 +18,8 @@
 
 **/
 
+'use strict';
+
 var qutf8 = require('q-utf8');
 var fp = require('ieee-float');
 
@@ -72,13 +74,11 @@ var convMap = {
 // when a message is serialized [fields] should be written sequentially by field number
 function _pack( format, data, buf, pos ) {
     for (var fieldnum=0, fi=0; fieldnum<data.length; fieldnum++) {
-        if (data[fieldnum] === undefined) continue;
         var fmt = format[fi++];
         // if needed, insert support for multi-char formats here
         var conv = convMap[fmt];
         if (conv) {
-            //encodeUVarint(fieldnum * 8 + conv.wt, buf, pos);
-            encodeType(fieldnum, conv.wt, buf, pos);
+            encodeType(fieldnum + 1, conv.wt, buf, pos);
             conv.enc(data[fieldnum], buf, pos);
         }
         else throw new Error(fmt + ": unknown pack conversion at offset " + fi);
@@ -102,7 +102,7 @@ function _unpack( format, buf, pos ) {
         // if needed, insert support for multi-char formats here
         conv = convMap[fmt];
         if (conv) {
-            data[fieldnum] = conv.dec(buf, pos);
+            data[fieldnum - 1] = conv.dec(buf, pos);
         }
         else throw new Error(fmt + ": unknown unpack conversion at offset " + fi);
 
