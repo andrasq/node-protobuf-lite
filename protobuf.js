@@ -26,6 +26,10 @@ var protobuf = module.exports = {
     unpack: unpack,
     _pack: _pack,
     _unpack: _unpack,
+
+    // common aliases
+    encode: pack,
+    decode: unpack,
 };
 
 /*
