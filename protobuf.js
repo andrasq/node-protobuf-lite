@@ -83,7 +83,8 @@ function _pack( format, data, buf, pos ) {
     return buf;
 }
 
-// NOTE: the fields are normally decoded according to the
+// NOTE: the fields are normally decoded according to the .proto type spec
+// Each wire type can be decoded as various different types.
 function _unpack( format, buf, pos ) {
     var data = new Array();
     var key, fieldnum, wiretype, conv;
