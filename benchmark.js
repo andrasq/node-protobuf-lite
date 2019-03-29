@@ -2,10 +2,18 @@
 
 'use strict';
 
+var qtimeit = require('qtimeit');
+
 var pbuf = require('protocol-buffers');
 var protobufjs = require('protobufjs');
 var pblite = require('./');
 
+var datasets = [];
+
+var data = {
+    num: 42,
+    payload: 'hello world',
+};
 var format = 'fa';
 var schema = [
     'enum FOO {',
@@ -29,13 +37,22 @@ var pbjsJson = {
 };
 var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
 var pbjsMessage = pbjsRoot.lookupType('Test');
+
+datasets.push({ data: data, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
+
+
 var data = {
-    num: 42,
-    payload: 'hello world',
+    str: 'Lorem ipsum dolor sit amet.',
+    iso: 9000,
+    date: 20161110,
+    long: 649545084044315,
+    typeid: 1,
+    sint: -42,
+    b1: true, b2: false, b3: false,
+    b4: true, b5: false, b6: false, b7: true,
+    doub: 204.8,
+    flt: 0.25,
 };
-var dataA = [ data.num, data.payload ];
-
-
 var format = 'aIIIIibbbbbbbdf';
 var schema = [
     'message Test {',
@@ -81,76 +98,123 @@ var pbjsJson = {
 };
 var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
 var pbjsMessage = pbjsRoot.lookupType('Test');
-var data = {
-    str: 'Lorem ipsum dolor sit amet.',
-    iso: 9000,
-    date: 20161110,
-    long: 649545084044315,
-    typeid: 1,
-    sint: -42,
-    b1: true, b2: false, b3: false,
-    b4: true, b5: false, b6: false, b7: true,
-    doub: 204.8,
-    flt: 0.25,
-};
-var dataA = [
-    , 'Lorem ipsum dolor sit amet.', 9000, 20161110, 649545084044315, 1, -42,
-    true, false, false, true, false, false, true, 204.8, 0.25
-];
+
+datasets.push({ data: data, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
 
 
-/**
-var schema = 'message Test { required sint64 a = 1; required sint64 b = 2; required sint64 c = 3; }';
-var data = { a: 1234, b: 23456, c: 345678 };
-var dataA = [ , 1234, 23456, 345678 ];
-var format = "iii";
+var data = { a: 1.5, b: 'foo', c1: 1, c2: 2, d: true };  // {"a":1.5,"b":"foo","c":[1,2],"d":true,"e":{}}
+var format = "faIIb";
+var schema = [
+    'message Test {',
+    '  float a = 1;',
+    '  string b = 2;',
+    '  int32 c1 = 3;',
+    '  int32 c2 = 4;',
+    '  bool d = 5;',
+    '}'
+].join('\n');
+var pbjsJson = {
+    nested: {
+        Test: {
+            fields: {
+                a: { type: 'float', id: 1 },
+                b: { type: 'string', id: 2 },
+                c1: { type: 'int32', id: 3 },
+                c2: { type: 'int32', id: 4 },
+                d: { type: 'bool', id: 5 },
+            }
+        }
+    }
+}
+var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
+var pbjsMessage = pbjsRoot.lookupType('Test');
 
-var schema = 'message Test { required int64 a = 1; required int64 b = 2; required int64 c = 3; }';
-var dataA = [ , -1, -2, -3 ];
-var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
-var format = "kkk";
+datasets.push({ data: data, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
 
-var schema = 'message Test { required int32 a = 1; required int32 b = 2; required int32 c = 3; }';
-var dataA = [ , -1, -2, -3 ];
-var data = { a: dataA[1], b: dataA[2], c: dataA[3] };
-var format = "jjj";
-**/
 
-var json = JSON.stringify(data);
+var canonical = { a: "ABC", b: 1, c: "DEFGHI\xff", d: 12345.67e-1, e: null };
+var format = "aiafb";
+var schema = [
+    'message Test {',
+    '  string a = 1;',
+    '  sint32 b = 2;',
+    '  string c = 3;',
+    '  double d = 4;',
+    '  bool e = 4;',
+    '}'
+].join('\n');
+var pbjsJson = {
+    nested: {
+        Test: {
+            fields: {
+                a: { type: 'string', id: 1 },
+                b: { type: 'int32', id: 2 },
+                c: { type: 'string', id: 3 },
+                d: { type: 'double', id: 4 },
+                e: { type: 'bool', id: 5 },
+            }
+        }
+    }
+}
 
-var messages = pbuf(schema);
-var buf = messages.Test.encode(data);
-//console.log("AR: buf", buf);
-//console.log("AR: test encode", pblite.pack(format, dataA));
-//console.log("AR: test decode", pblite.unpack(format, buf));
-//console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
+datasets.push({ data: canonical, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
 
-var item = messages.Test.decode(buf);
-//console.log("AR: item", item);
-//console.log("AR: unpacked", pblite.unpack(format, buf));
 
-var x;
-var qtimeit = require('qtimeit');
-qtimeit.bench.timeGoal = .2;
-qtimeit.bench.visualize = true;
-console.log("");
-qtimeit.bench({
-    'pbuf enc': function() { x = messages.Test.encode(data) },
-    'pbjs enc': function() { x = pbjsMessage.encode(pbjsMessage.create(data)).finish() },
-    'json enc': function() { x = JSON.stringify(data) },
-    'pblite packA': function() { x = pblite.pack(format, dataA) },
-    'pblite _packA': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
-});
-//console.log(JSON.stringify(x));
+for (var i=0; i<datasets.length; i++) {
+    data = datasets[i].data;
+    schema = datasets[i].pbufSchema;
+    pbjsJson = datasets[i].pbjsJson;
+    format = datasets[i].pbliteFormat;
 
-console.log("");
-qtimeit.bench({
-    'pbuf dec': function() { x = messages.Test.decode(buf) },
-    'pbjs dec': function() { x = pbjsMessage.decode(buf) },
-    'json dec': function() { x = JSON.parse(json) },
-    'pblite unpack': function() { x = pblite.unpack(format, buf) },
-});
-console.log(x);
+    var dataA = [undefined];
+    for (var k in data) dataA.push(data[k]);
+
+    // create a protocol-buffers coder
+    var messages = pbuf(schema);
+
+    // create a pbjs coder
+    var pbjsRoot = protobufjs.Root.fromJSON(pbjsJson);
+    var pbjsMessage = pbjsRoot.lookupType('Test');
+
+    // prepare the test data, encoded and decoded
+    var json = JSON.stringify(data);
+    var packed = messages.Test.encode(data);
+    //console.log("AR: packed", packed);
+    //console.log("AR: test encode", pblite.pack(format, dataA));
+    //console.log("AR: test decode", pblite.unpack(format, packed));
+    //console.log("AR: test my decode", pblite.unpack(format, pblite.pack(format, dataA)));
+
+    var item = messages.Test.decode(packed);
+    //console.log("AR: item", item);
+    //console.log("AR: unpacked", pblite.unpack(format, packed));
+
+
+    console.log("---------------- testing", data);
+
+    var x;
+    qtimeit.bench.timeGoal = .2;
+    qtimeit.bench.visualize = true;
+    console.log("");
+    qtimeit.bench({
+        '1st pblite packA': function() { x = pblite.pack(format, dataA) },
+        'pbuf enc': function() { x = messages.Test.encode(data) },
+        'pbjs enc': function() { x = pbjsMessage.encode(pbjsMessage.create(data)).finish() },
+        'json enc': function() { x = JSON.stringify(data) },
+        'pblite packA': function() { x = pblite.pack(format, dataA) },
+        'pblite _packA': function() { x = pblite._pack(format, dataA, new Array(), {p:0}) },
+    });
+    //console.log(JSON.stringify(x));
+
+    console.log("");
+    qtimeit.bench({
+        '1st pblite unpack': function() { x = pblite.unpack(format, packed) },
+        'pbuf dec': function() { x = messages.Test.decode(packed) },
+        'pbjs dec': function() { x = pbjsMessage.toObject(pbjsMessage.decode(packed)) },
+        'json dec': function() { x = JSON.parse(json) },
+        'pblite unpack': function() { x = pblite.unpack(format, packed) },
+    });
+    console.log(x);
+}
 
 /*
 
