@@ -229,11 +229,11 @@ function decodeUVarint( buf, pos ) {
 function decodeVarint( buf, pos ) {
     var byte = buf[pos.p++];
     var val = (byte & 0x7e) >>> 1;
+    if (! (byte & 0x80)) return (byte & 1) ? -val - 1 : val;
 
     // multi-byte values
-    if (byte >= 0x80) val += 64 * decodeUVarint(buf, pos);
-
     // decode as 0..63 or -1..-64
+    val += 64 * decodeUVarint(buf, pos);
     return (byte & 1) ? -val - 1 : val;
 }
 
