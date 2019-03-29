@@ -71,7 +71,6 @@ var convMap = {
 
 // when a message is serialized [fields] should be written sequentially by field number
 function _pack( format, data, buf, pos ) {
-    var fieldnum = pos.fieldnum || 0;
     for (var fieldnum=0, fi=0; fieldnum<data.length; fieldnum++) {
         if (data[fieldnum] === undefined) continue;
         var fmt = format[fi++];
