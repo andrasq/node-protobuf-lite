@@ -9,7 +9,7 @@
   "license": "Apache-2.0",
 
   "dependencies": {
-    "ieee-float": "0.3.4",
+    "ieee-float": "0.6.0",
     "q-utf8": "0.1.1"
   },
   "devDependencies": {
