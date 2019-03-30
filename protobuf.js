@@ -20,6 +20,7 @@
 
 'use strict';
 
+var util = require('util');
 var qutf8 = require('q-utf8');
 var fp = require('ieee-float');
 
@@ -72,42 +73,60 @@ var convMap = {
 };
 
 // when a message is serialized [fields] should be written sequentially by field number
+var _packers = {};
 function _pack( format, data, buf, pos ) {
-    for (var fieldnum=0, fi=0; fieldnum<data.length; fieldnum++) {
-        var fmt = format[fi++];
-        // if needed, insert support for multi-char formats here
-        var conv = convMap[fmt];
-        if (conv) {
-            encodeType(fieldnum + 1, conv.wt, buf, pos);
-            conv.enc(data[fieldnum], buf, pos);
-        }
-        else throw new Error(fmt + ": unknown pack conversion at offset " + fi);
+    var packer = _packers[format] || (_packers[format] = compilePack(format));
+    return packer(format, data, buf, pos);
+}
+
+// build a function to decode this format
+function compilePack( format ) {
+    var encSrc = [
+        util.format('function _pack(format, data, buf, pos) {'),
+        util.format('  if (data.length !== %d) throw new Error("expected %d data items, got " + data.length);', format.length, format.length),
+    ];
+    for (var fi = 0; fi < format.length; fi++) {
+        var fmt = format[fi];
+        if (!convMap[fmt]) throw new Error(fmt + ': unknown conversion specifier at offset ' + fi);
+        encSrc.push(util.format('  encodeType(%d, %d, buf, pos);', fi + 1, convMap[fmt].wt));
+        var packFuncName = convMap[fmt].enc.name.length > 5 ? convMap[fmt].enc.name : 'convMap["' + fmt + '"].enc';
+        //encSrc.push(util.format('  %s(data[%d], buf, pos);', convMap[fmt].enc.name.length > 5 ? convMap[fmt].enc.name : 'convMap["' + fmt + '"].enc', fi));
+        encSrc.push(util.format('  %s(data[%d], buf, pos);', packFuncName, fi));
     }
-    return buf;
+    encSrc.push('  return buf;');
+    encSrc.push('}');
+    return eval('true && ' + encSrc.join('\n'));
 }
 
 // NOTE: the fields are normally decoded according to the .proto type spec
 // Each wire type can be decoded as various different types.
+var _unpackers = {};
 function _unpack( format, buf, pos ) {
-    var data = new Array();
-    var key, fieldnum, wiretype, conv;
+    var unpacker = _unpackers[format] || (_unpackers[format] = compileUnpack(format));
+    return unpacker(format, buf, pos);
+}
 
-    var len = format.length;
-    for (var fi=0; fi<len; fi++) {
-        key = decodeUVarint(buf, pos);
-        wiretype = key & 7;
-        fieldnum = key >>> 3;
-
+// build a function to decode this format
+function compileUnpack( format ) {
+    var decSrc = [
+        util.format('function _unpack(format, buf, pos) {'),
+        util.format('  var data = new Array(%d);', format.length),
+        util.format('  var key, fieldnum, wiretype, conv;'),
+        // key = decodeUVarint(buf, pos);
+        // wiretype = key & 7;
+        // fieldnum = key >>> 3;
+    ];
+    for (var fi = 0; fi < format.length; fi++) {
         var fmt = format[fi];
-        // if needed, insert support for multi-char formats here
-        conv = convMap[fmt];
-        if (conv) {
-            data[fieldnum - 1] = conv.dec(buf, pos);
-        }
-        else throw new Error(fmt + ": unknown unpack conversion at offset " + fi);
-
+        if (!convMap[fmt]) throw new Error(fmt + ': unknown pack conversion at offset ' + fi);
+        decSrc.push(util.format('  key = decodeUVarint(buf, pos);'));
+        var unpackFuncName = convMap[fmt].dec.name.length > 5 ? convMap[fmt].dec.name : 'convMap["' + fmt + '"].dec';
+        decSrc.push(util.format('  data[(key >>> 3) - 1] = %s(buf, pos);', unpackFuncName));
     }
-    return data;
+    decSrc.push(util.format('  if (data.length !== %d) throw new Error("expected %d data items, got " + data.length);', format.length, format.length));
+    decSrc.push('  return data;');
+    decSrc.push('}');
+    return eval('true && ' + decSrc.join('\n'));
 }
 
 function encodeType( fieldnum, wiretype, buf, pos ) {
