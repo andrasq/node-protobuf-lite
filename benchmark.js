@@ -160,6 +160,9 @@ var pbjsJson = {
 
 datasets.push({ data: canonical, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
 
+// TODO: add support for hierchical data, and time
+// var pbufExample = { foo: 'hello', hello: 42, payload: Buffer.from('a'), meh: { b: { tmp: { baz: 1000 } }, lol: 'lol' } };
+
 
 for (var i=0; i<datasets.length; i++) {
     data = datasets[i].data;
