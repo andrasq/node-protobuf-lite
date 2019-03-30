@@ -132,15 +132,16 @@ var pbjsMessage = pbjsRoot.lookupType('Test');
 datasets.push({ data: data, pbufSchema: schema, pbjsJson: pbjsJson, pbliteFormat: format });
 
 
-var canonical = { a: "ABC", b: 1, c: "DEFGHI\xff", d: 12345.67e-1, e: null };
-var format = "aiafb";
+// note; canonical has e:null, but protocol-buffers omits the field if null, and decode returns undefined not a boolean
+var canonical = { a: "ABC", b: 1, c: "DEFGHI\xff", d: 12345.67e-1, e: false };
+var format = "aiadb";
 var schema = [
     'message Test {',
     '  string a = 1;',
     '  sint32 b = 2;',
     '  string c = 3;',
     '  double d = 4;',
-    '  bool e = 4;',
+    '  bool e = 5;',
     '}'
 ].join('\n');
 var pbjsJson = {
@@ -179,6 +180,7 @@ for (var i=0; i<datasets.length; i++) {
     // prepare the test data, encoded and decoded
     var json = JSON.stringify(data);
     var packed = messages.Test.encode(data);
+    //var packed = pbjsMessage.encode(pbjsMessage.create(data)).finish();
     //console.log("AR: packed", packed);
     //console.log("AR: test encode", pblite.pack(format, dataA));
     //console.log("AR: test decode", pblite.unpack(format, packed));
