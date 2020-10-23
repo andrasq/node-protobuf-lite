@@ -127,7 +127,7 @@ t.skip();
             ];
 
             for (var i=0; i<tests.length; i++) {
-                t.deepEqual(pb.pack('f', [tests[i][0]]), tests[i][1]);
+                t.deepEqual(toArray(pb.pack('f', [tests[i][0]])), tests[i][1]);
                 if (!isNaN(tests[i][0])) t.equal(pb.unpack('f', tests[i][1])[0], tests[i][0]);
                 else t.ok(isNaN(pb.unpack('f', tests[i][1])[0]));
             }
@@ -144,7 +144,7 @@ t.skip();
             ];
 
             for (var i=0; i<tests.length; i++) {
-                t.deepEqual(pb.pack('d', [tests[i][0]]), tests[i][1]);
+                t.deepEqual(toArray(pb.pack('d', [tests[i][0]])), tests[i][1]);
                 if (!isNaN(tests[i][0])) t.equal(pb.unpack('d', tests[i][1])[0], tests[i][0]);
                 else t.ok(isNaN(pb.unpack('d', tests[i][1])[0]));
             }
@@ -188,4 +188,10 @@ t.skip();
             t.done();
         },
     },
+}
+
+function toArray(ary) {
+    var array = [];
+    for (var i = 0; i < ary.length; i++) array.push(ary[i]);
+    return array;
 }
