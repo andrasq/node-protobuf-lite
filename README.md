@@ -25,7 +25,7 @@ Api
 
 ### pack( format, array )
 
-Encode the data in the `array` accorting to the `format`, and return
+Encode the data in the `array` according to the `format`, and return
 a Buffer containing the packed bytes.  The actual offset in the array
 will be used as the field tag; for `protobuf` compatibility, do not use
 offset 0.
@@ -52,7 +52,7 @@ Format
 
 The pack/unpack `format` is a concatenated series of conversion specifiers, one per
 data item.  Skipping items is not yet supported.  The conversion specifiers were
-deliberately patterned after `PERL pack()`.
+deliberately patterned after PERL/PHP/Ruby `pack()`.
 
 For example, the format `'iVad'` would store the first four data items from the input
 array, packing them as `varint`, `uint32`, `string` and `double64`, respectively.
